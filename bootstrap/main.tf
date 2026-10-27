@@ -31,8 +31,8 @@ resource "aws_s3_bucket" "state" {
   #checkov:skip=CKV_AWS_18:Access logging on the state bucket is not needed for a lab
   #checkov:skip=CKV2_AWS_62:Event notifications are not needed for the state bucket
   #checkov:skip=CKV_AWS_145:SSE-S3 is used for state to avoid a dedicated KMS key cost
-  # Account-regional namespace: the name is reserved for this account and
-  # region, so nobody else can take it. Required on AWS "projects" accounts.
+  # Account-regional namespace (S3, March 2026): the name is reserved for this
+  # account and region, so nobody else can take it.
   bucket           = "${var.name_prefix}-tfstate-${data.aws_caller_identity.current.account_id}-${var.region}-an"
   bucket_namespace = "account-regional"
 

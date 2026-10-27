@@ -31,9 +31,9 @@ Since September 2026, new AWS sign-ups create a **project** owned by an **AWS Bu
 - **What it does:** your Builder ID owns the account, so this is the login that most needs protecting.
 - **Check:** signing out and back in asks for an MFA code.
 
-### Step 3. Note your region
-- In the console, look at the address bar for `region=`, for example `region=us-east-1`.
-- **What it does:** Terraform must deploy to the region your project uses. This repo defaults to `us-east-1`. If yours is different, change `region` in `bootstrap/variables.tf` and `envs/dev/variables.tf`.
+### Step 3. Find your project's home region
+- Go to **settings.aws.com**, then **Project**, **Overview**, **Additional info**, and read **Region** (for example `US East (Ohio) us-east-2`).
+- **Why it matters:** on projects accounts, AWS's built-in policy allows only global services (IAM, Route 53, CloudFront) in `us-east-1`. S3, VPC, CloudTrail and the rest must go in your home region. This repo defaults to `us-east-2`. If yours is different, change `region` in `bootstrap/variables.tf` and `envs/dev/variables.tf`, and use it in Steps 6 and 7.
 
 ---
 
@@ -71,7 +71,7 @@ In VS Code, press `Ctrl+Shift+X` and install the **HashiCorp Terraform** extensi
 ### Step 6. Connect the AWS CLI to your account
 
 ```powershell
-aws configure set region us-east-1
+aws configure set region us-east-2
 aws login
 ```
 
@@ -89,7 +89,7 @@ You should see your 12-digit account ID and an ARN.
 
 ```powershell
 aws configure set credential_process "aws configure export-credentials --profile default --format process" --profile hlz
-aws configure set region us-east-1 --profile hlz
+aws configure set region us-east-2 --profile hlz
 aws sts get-caller-identity --profile hlz
 ```
 
@@ -141,7 +141,7 @@ terraform apply
 Type `yes` when asked.
 
 - **What it does:** creates the private, encrypted, versioned S3 bucket where Terraform remembers what it built. Bootstrap itself keeps its small state file locally, in the `bootstrap` folder (git-ignored).
-- **Check:** the output shows `state_bucket_name = "hlz-tfstate-<your account id>-us-east-1-an"`. Copy it.
+- **Check:** the output shows `state_bucket_name = "hlz-tfstate-<your account id>-us-east-2-an"`. Copy it.
 
 ### Step 11. Point the dev environment at the state bucket
 
@@ -239,7 +239,7 @@ Then open the repo's **Actions** tab. All three checks (Format, Validate, Checko
 | `Error acquiring the state lock` | A previous run was interrupted | Wait a minute and retry; if stuck, `terraform force-unlock <LOCK_ID>` |
 | `InsufficientS3BucketPolicyException` on CloudTrail | Trail created before the bucket policy | Run `terraform apply` again |
 | Free plan blocks a service | Some services need the paid plan | Note it in the roadmap; upgrade only if needed |
-| `s3:CreateBucket ... explicit deny in a service control policy` | Projects accounts only allow S3's account-regional namespace | Bucket names must end in `-<account>-<region>-an` with `bucket_namespace = "account-regional"` (already set in this repo; run `terraform init -upgrade` if you cloned before this change) |
+| `... explicit deny in a service control policy` on S3, VPC or CloudTrail | Projects accounts block regional services in `us-east-1` | Deploy to your home region (Step 3): set it in both `variables.tf` files, `backend.hcl` and both CLI profiles |
 | `Too many command line arguments` | PowerShell splits `-out=file.tfplan` at the dot | Put quotes around it: `"-out=dev.tfplan"` |
 | CI Format check fails | Code not formatted | `terraform fmt -recursive` from the repo root, then commit |
 

@@ -9,10 +9,10 @@ Quick version (Windows PowerShell, AWS "projects" account):
 winget install Hashicorp.Terraform
 winget install Amazon.AWSCLI          # needs 2.32+ for aws login
 winget install Git.Git
-aws configure set region us-east-1
+aws configure set region us-east-2
 aws login
 aws configure set credential_process "aws configure export-credentials --profile default --format process" --profile hlz
-aws configure set region us-east-1 --profile hlz
+aws configure set region us-east-2 --profile hlz
 
 # Every session
 aws login

@@ -10,7 +10,7 @@ A security-first AWS foundation built entirely with reusable Terraform modules. 
 
 ```mermaid
 flowchart LR
-    subgraph Account["AWS account (us-east-1)"]
+    subgraph Account["AWS account (us-east-2)"]
         subgraph VPC["VPC 10.20.0.0/16"]
             PUB["Public subnets x2<br/>(no auto public IPs)"]
             PRIV["Private subnets x2<br/>(no internet route)"]
