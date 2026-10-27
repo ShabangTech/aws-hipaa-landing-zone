@@ -18,7 +18,7 @@ About 22 to 27 hours total, roughly 2 to 3 weeks at 1 to 2 hours a day.
 - [x] Feature flags for services the projects account blocks (GuardDuty, Access Analyzer, multi-region trail)
 - [x] Deploy `envs/dev`, confirm logs arrive in the bucket, screenshot the results ([build log](BUILD_LOG.md))
 - [x] Destroy cleanly (26 resources removed)
-- [ ] Redeploy from scratch once to prove it is repeatable
+- [x] Redeploy from scratch and destroy again to prove it is repeatable
 
 ## Phase 2: CI/CD pipeline (4 to 5 hours)
 - [x] GitHub Actions: `terraform fmt`, `validate`, Checkov

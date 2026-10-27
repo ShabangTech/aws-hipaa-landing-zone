@@ -77,6 +77,8 @@ CloudTrail is logging, the flow logs are active, and both log streams are landin
 
 The whole environment is torn down at the end of each session and rebuilt from code in about two minutes. Only the state bucket stays.
 
+**Repeatability check:** after the first teardown, the environment was rebuilt from scratch with a fresh `plan` and `apply` (26 resources), then destroyed again (26 resources). No manual steps, no drift.
+
 ## Lessons
 
 - **Read the deny.** "Explicit deny in a service control policy" points at the organization, not IAM, and narrows the search fast.

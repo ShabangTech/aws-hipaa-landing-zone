@@ -78,6 +78,7 @@ The [build log](docs/BUILD_LOG.md) walks through the real deployment with screen
 | VPC flow logs | `ACTIVE` |
 | Log archive bucket | `cloudtrail/` and `vpc-flow-logs/` arriving, KMS-encrypted |
 | `terraform destroy` | 26 resources removed cleanly |
+| Rebuild from scratch | 26 created again, then destroyed again |
 
 ## Cost guardrails
 
