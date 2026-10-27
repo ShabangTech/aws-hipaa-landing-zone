@@ -7,7 +7,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 6.0"
+      version = "~> 6.37" # 6.37+ supports S3 account-regional namespaces
     }
   }
 }
@@ -31,7 +31,10 @@ resource "aws_s3_bucket" "state" {
   #checkov:skip=CKV_AWS_18:Access logging on the state bucket is not needed for a lab
   #checkov:skip=CKV2_AWS_62:Event notifications are not needed for the state bucket
   #checkov:skip=CKV_AWS_145:SSE-S3 is used for state to avoid a dedicated KMS key cost
-  bucket = "${var.name_prefix}-tfstate-${data.aws_caller_identity.current.account_id}"
+  # Account-regional namespace: the name is reserved for this account and
+  # region, so nobody else can take it. Required on AWS "projects" accounts.
+  bucket           = "${var.name_prefix}-tfstate-${data.aws_caller_identity.current.account_id}-${var.region}-an"
+  bucket_namespace = "account-regional"
 
   force_destroy = var.force_destroy
 }

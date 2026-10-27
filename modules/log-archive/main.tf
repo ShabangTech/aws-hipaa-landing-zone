@@ -4,11 +4,13 @@
 
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
+data "aws_region" "current" {}
 
 locals {
   account_id  = data.aws_caller_identity.current.account_id
   partition   = data.aws_partition.current.partition
-  bucket_name = "${var.name_prefix}-log-archive-${local.account_id}"
+  # Account-regional namespace name: <prefix>-<account>-<region>-an
+  bucket_name = "${var.name_prefix}-log-archive-${local.account_id}-${data.aws_region.current.region}-an"
 }
 
 # ---------------------------------------------------------------- KMS key
@@ -107,7 +109,8 @@ resource "aws_s3_bucket" "logs" {
   #checkov:skip=CKV_AWS_144:Cross-region replication is out of scope for a single-account lab
   #checkov:skip=CKV_AWS_18:This bucket is the log destination; logging it to itself adds no value
   #checkov:skip=CKV2_AWS_62:Event notifications are added in Phase 3 (auto-remediation)
-  bucket = local.bucket_name
+  bucket           = local.bucket_name
+  bucket_namespace = "account-regional"
 
   force_destroy = var.force_destroy
 }

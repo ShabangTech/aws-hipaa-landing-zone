@@ -1,4 +1,4 @@
 # Copy to backend.hcl and fill in the bucket name printed by bootstrap.
 # backend.hcl is git-ignored.
-bucket = "hlz-tfstate-123456789012"
+bucket = "hlz-tfstate-123456789012-us-east-1-an"
 region = "us-east-1"

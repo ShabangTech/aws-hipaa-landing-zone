@@ -141,7 +141,7 @@ terraform apply
 Type `yes` when asked.
 
 - **What it does:** creates the private, encrypted, versioned S3 bucket where Terraform remembers what it built. Bootstrap itself keeps its small state file locally, in the `bootstrap` folder (git-ignored).
-- **Check:** the output shows `state_bucket_name = "hlz-tfstate-<your account id>"`. Copy it.
+- **Check:** the output shows `state_bucket_name = "hlz-tfstate-<your account id>-us-east-1-an"`. Copy it.
 
 ### Step 11. Point the dev environment at the state bucket
 
@@ -239,6 +239,7 @@ Then open the repo's **Actions** tab. All three checks (Format, Validate, Checko
 | `Error acquiring the state lock` | A previous run was interrupted | Wait a minute and retry; if stuck, `terraform force-unlock <LOCK_ID>` |
 | `InsufficientS3BucketPolicyException` on CloudTrail | Trail created before the bucket policy | Run `terraform apply` again |
 | Free plan blocks a service | Some services need the paid plan | Note it in the roadmap; upgrade only if needed |
+| `s3:CreateBucket ... explicit deny in a service control policy` | Projects accounts only allow S3's account-regional namespace | Bucket names must end in `-<account>-<region>-an` with `bucket_namespace = "account-regional"` (already set in this repo; run `terraform init -upgrade` if you cloned before this change) |
 | `Too many command line arguments` | PowerShell splits `-out=file.tfplan` at the dot | Put quotes around it: `"-out=dev.tfplan"` |
 | CI Format check fails | Code not formatted | `terraform fmt -recursive` from the repo root, then commit |
 
