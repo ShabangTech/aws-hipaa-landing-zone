@@ -13,7 +13,7 @@ About 22 to 27 hours total, roughly 2 to 3 weeks at 1 to 2 hours a day.
 ## Phase 1: Core modules (8 to 10 hours)
 - [x] `log-archive`: KMS key and encrypted log bucket
 - [x] `network`: VPC, subnets, flow logs, locked default security group
-- [x] `audit-trail`: multi-region CloudTrail with log validation
+- [x] `audit-trail`: CloudTrail with log validation (multi-region behind a flag)
 - [x] `security-baseline`: account guardrails, with GuardDuty and Access Analyzer as feature flags
 - [x] Feature flags for services the projects account blocks (GuardDuty, Access Analyzer, multi-region trail)
 - [ ] Deploy `envs/dev`, confirm logs arrive in the bucket, screenshot the results
