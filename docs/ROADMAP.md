@@ -16,8 +16,9 @@ About 22 to 27 hours total, roughly 2 to 3 weeks at 1 to 2 hours a day.
 - [x] `audit-trail`: CloudTrail with log validation (multi-region behind a flag)
 - [x] `security-baseline`: account guardrails, with GuardDuty and Access Analyzer as feature flags
 - [x] Feature flags for services the projects account blocks (GuardDuty, Access Analyzer, multi-region trail)
-- [ ] Deploy `envs/dev`, confirm logs arrive in the bucket, screenshot the results
-- [ ] Destroy and redeploy once to prove it is repeatable
+- [x] Deploy `envs/dev`, confirm logs arrive in the bucket, screenshot the results ([build log](BUILD_LOG.md))
+- [x] Destroy cleanly (26 resources removed)
+- [ ] Redeploy from scratch once to prove it is repeatable
 
 ## Phase 2: CI/CD pipeline (4 to 5 hours)
 - [x] GitHub Actions: `terraform fmt`, `validate`, Checkov

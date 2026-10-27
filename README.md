@@ -4,7 +4,9 @@
 
 A security-first AWS foundation built entirely with reusable Terraform modules. It sets up the guardrails a healthcare or other regulated team would expect before any workload goes in: encrypted audit logs, private networking, threat detection, and account-wide security defaults. Every change is format-checked, validated, and security-scanned in CI.
 
-> **Status:** Phase 1 in progress. See the [roadmap](docs/ROADMAP.md).
+> **Status:** Phases 0 and 1 complete: deployed, verified and torn down in a live AWS account (us-east-2). See the [build log](docs/BUILD_LOG.md) and the [roadmap](docs/ROADMAP.md).
+
+![Apply complete: 26 resources](docs/images/07-dev-apply.png)
 
 ## Architecture
 
@@ -64,6 +66,18 @@ This project is a learning lab, not a compliance certification. It shows how com
 | Access control, §164.312(a)(1) | Least-privilege bucket and key policies, account-wide public access block |
 | Activity review, §164.308(a)(1)(ii)(D) | CloudTrail logs; GuardDuty findings and IAM Access Analyzer where the account allows (flags) |
 | Password management, §164.308(a)(5)(ii)(D) | IAM password policy (14+ characters, rotation, no reuse), behind a flag |
+
+## Deployed and verified
+
+The [build log](docs/BUILD_LOG.md) walks through the real deployment with screenshots, including two account-guardrail blockers (an SCP that denies regional services in `us-east-1`, and an account type that blocks GuardDuty) and how each was diagnosed and fixed.
+
+| Check | Result |
+|---|---|
+| `terraform apply` | 26 resources created in us-east-2 |
+| CloudTrail `IsLogging` | `true` |
+| VPC flow logs | `ACTIVE` |
+| Log archive bucket | `cloudtrail/` and `vpc-flow-logs/` arriving, KMS-encrypted |
+| `terraform destroy` | 26 resources removed cleanly |
 
 ## Cost guardrails
 
