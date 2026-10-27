@@ -6,10 +6,10 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
 
+# The bucket uses S3's account-regional namespace: <prefix>-<account>-<region>-an
 locals {
   account_id  = data.aws_caller_identity.current.account_id
   partition   = data.aws_partition.current.partition
-  # Account-regional namespace name: <prefix>-<account>-<region>-an
   bucket_name = "${var.name_prefix}-log-archive-${local.account_id}-${data.aws_region.current.region}-an"
 }
 
