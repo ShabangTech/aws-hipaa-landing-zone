@@ -16,8 +16,24 @@ variable "owner" {
   default     = "shabangtech"
 }
 
+# Account capabilities. The defaults suit AWS's newer "projects" accounts
+# (free plan). In a standard account or one with advanced features
+# activated, set these to true in a terraform.tfvars file.
+
 variable "enable_guardduty" {
   description = "Turn on GuardDuty threat detection."
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "enable_access_analyzer" {
+  description = "Turn on IAM Access Analyzer."
+  type        = bool
+  default     = false
+}
+
+variable "multi_region_trail" {
+  description = "Make the CloudTrail record every region."
+  type        = bool
+  default     = false
 }

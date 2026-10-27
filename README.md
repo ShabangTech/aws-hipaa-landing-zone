@@ -15,13 +15,12 @@ flowchart LR
             PUB["Public subnets x2<br/>(no auto public IPs)"]
             PRIV["Private subnets x2<br/>(no internet route)"]
         end
-        CT["CloudTrail<br/>multi-region, log validation"]
+        CT["CloudTrail<br/>log file validation"]
         FL["VPC Flow Logs"]
         KMS["KMS key<br/>auto-rotation"]
         S3["Log archive bucket<br/>versioned, private, TLS-only"]
-        GD["GuardDuty"]
-        AA["IAM Access Analyzer"]
-        BASE["Account guardrails<br/>S3 public block, EBS encryption,<br/>password policy"]
+        BASE["Account guardrails<br/>S3 public block, EBS encryption"]
+        OPT["Feature flags<br/>GuardDuty, Access Analyzer,<br/>multi-region trail"]
     end
     VPC --> FL --> S3
     CT --> S3
@@ -36,8 +35,21 @@ flowchart LR
 | [`bootstrap`](bootstrap) | Versioned, encrypted, private S3 bucket for Terraform remote state, with native S3 state locking |
 | [`log-archive`](modules/log-archive) | KMS key with rotation plus an S3 bucket that receives CloudTrail and VPC flow logs, locked to the services that write to it |
 | [`network`](modules/network) | VPC across two availability zones, public and private subnets, flow logs, and a default security group with every rule removed |
-| [`audit-trail`](modules/audit-trail) | Multi-region CloudTrail with log file integrity validation, encrypted with the log archive key |
-| [`security-baseline`](modules/security-baseline) | GuardDuty, IAM Access Analyzer, account-wide S3 public access block, default EBS encryption, strong IAM password policy |
+| [`audit-trail`](modules/audit-trail) | CloudTrail with log file integrity validation, encrypted with the log archive key; multi-region behind a flag |
+| [`security-baseline`](modules/security-baseline) | Account-wide S3 public access block and default EBS encryption, plus GuardDuty, IAM Access Analyzer and an IAM password policy behind feature flags |
+
+### Works on both kinds of AWS account
+
+New AWS sign-ups (since September 2026) create a free-plan **project** that blocks some services, including GuardDuty, IAM Access Analyzer and multi-region features. Rather than fork the code, those controls are **feature flags** that default to off:
+
+```hcl
+# envs/dev/terraform.tfvars, in a standard account or one with advanced features
+enable_guardduty       = true
+enable_access_analyzer = true
+multi_region_trail     = true
+```
+
+Same modules, one file of settings per account type.
 
 ## How the controls map to HIPAA technical safeguards
 
@@ -50,15 +62,15 @@ This project is a learning lab, not a compliance certification. It shows how com
 | Encryption, §164.312(a)(2)(iv) | KMS-encrypted logs, default EBS encryption |
 | Transmission security, §164.312(e)(1) | Bucket policies deny any request not using TLS |
 | Access control, §164.312(a)(1) | Least-privilege bucket and key policies, account-wide public access block |
-| Activity review, §164.308(a)(1)(ii)(D) | GuardDuty findings, IAM Access Analyzer |
-| Password management, §164.308(a)(5)(ii)(D) | IAM password policy (14+ characters, rotation, no reuse) |
+| Activity review, §164.308(a)(1)(ii)(D) | CloudTrail logs; GuardDuty findings and IAM Access Analyzer where the account allows (flags) |
+| Password management, §164.308(a)(5)(ii)(D) | IAM password policy (14+ characters, rotation, no reuse), behind a flag |
 
 ## Cost guardrails
 
 Designed to run at or near $0 on a new account:
 
 - **No NAT gateway**, which would cost about $32 a month. Private subnets have no internet route.
-- **GuardDuty** has a 30-day free trial. Set `enable_guardduty = false` to skip it.
+- **GuardDuty** is off by default. Where available it has a 30-day free trial.
 - **KMS** costs about $1 a month per key, covered by new-account credits.
 - Run `terraform destroy` at the end of each session.
 

@@ -8,6 +8,12 @@ variable "log_bucket_name" {
   type        = string
 }
 
+variable "multi_region" {
+  description = "Record API calls in every region. Leave false on AWS 'projects' accounts."
+  type        = bool
+  default     = false
+}
+
 variable "kms_key_arn" {
   description = "ARN of the KMS key used to encrypt CloudTrail logs."
   type        = string

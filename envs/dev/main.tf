@@ -24,6 +24,7 @@ module "audit_trail" {
   name_prefix     = var.name_prefix
   log_bucket_name = module.log_archive.bucket_name
   kms_key_arn     = module.log_archive.kms_key_arn
+  multi_region    = var.multi_region_trail
 
   depends_on = [module.log_archive]
 }
@@ -31,6 +32,7 @@ module "audit_trail" {
 module "security_baseline" {
   source = "../../modules/security-baseline"
 
-  name_prefix      = var.name_prefix
-  enable_guardduty = var.enable_guardduty
+  name_prefix            = var.name_prefix
+  enable_guardduty       = var.enable_guardduty
+  enable_access_analyzer = var.enable_access_analyzer
 }

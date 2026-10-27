@@ -1,43 +1,45 @@
 # Terraform walkthrough (Windows)
 
-Every step from an empty AWS account to a deployed, verified, and torn-down landing zone. Each step lists what to run, what it does, and how to confirm it worked. Run commands in **PowerShell** unless noted.
+Every step from a new AWS account to a deployed, verified, and torn-down landing zone. Each step lists what to run, what it does, and how to confirm it worked. Run commands in **PowerShell** unless noted.
 
 > **Golden rule:** never paste passwords, MFA codes, or access keys into chats, issues, commits, or screenshots.
 
 ---
 
-## Part 1: Account and access (one time)
+## Which kind of AWS account do you have?
 
-### Step 1. Create the AWS account
-- Sign up at aws.amazon.com and choose the **Free plan**.
-- **What it does:** gives you a sandbox with credits that cannot be charged for 6 months.
-- **Check:** you can sign in to the AWS console as the root user.
+Since September 2026, new AWS sign-ups create a **project** owned by an **AWS Builder ID** instead of a classic account with a root user. This guide is written for that newer kind (free plan). Differences that matter here:
 
-### Step 2. Protect the root user
-- Console, then account menu (top right), then **Security credentials**, then **Assign MFA device**. Use an authenticator app.
-- **What it does:** root can do anything, including close the account. MFA stops a stolen password from being enough.
+| | Projects account (this guide) | Standard account |
+|---|---|---|
+| Owner | AWS Builder ID, no root user | Root user email |
+| MFA | settings.aws.com | IAM, Security credentials |
+| Terminal sign-in | `aws login` | `aws login` or IAM Identity Center |
+| GuardDuty, Access Analyzer, multi-region trail | Blocked: leave the flags off | Set the flags to `true` |
+| Spend protection | Spend limit pauses the project | Budgets only |
+
+---
+
+## Part 1: Account (one time)
+
+### Step 1. Create the account
+- Sign up at aws.amazon.com. You'll land on Console Home with a project (for example "Idea Launchpad").
+- **Check:** your account menu (top right) shows **Free plan status** with credits and days remaining.
+
+### Step 2. Turn on MFA
+- Go to **settings.aws.com** and turn on multi-factor authentication for your sign-in, using an authenticator app.
+- **What it does:** your Builder ID owns the account, so this is the login that most needs protecting.
 - **Check:** signing out and back in asks for an MFA code.
 
-### Step 3. Set up budget alerts
-- **Billing and Cost Management**, then **Budgets**, then **Create budget**.
-- Create a **Zero spend budget** (template) and a **Monthly cost budget** of **$5**. Use your email for both.
-- **What it does:** emails you the moment anything starts costing money.
-- **Check:** both budgets appear in the Budgets list.
-
-### Step 4. Create your admin user in IAM Identity Center
-1. Search the console for **IAM Identity Center** and click **Enable** (region: **us-east-1**).
-2. **Users**, then **Add user**, for example `my-admin`. Accept the email invitation and set a password and MFA.
-3. **Permission sets**, then **Create permission set**, then **Predefined**, then **AdministratorAccess**.
-4. **AWS accounts**, select your account, then **Assign users or groups**, and choose your user and the AdministratorAccess set.
-5. Copy the **AWS access portal URL** from the Identity Center dashboard.
-- **What it does:** creates a day-to-day admin with short-lived credentials, so you stop using root and never need long-lived access keys.
-- **Check:** the portal URL shows your account with an **AdministratorAccess** role. Sign out of root for good.
+### Step 3. Note your region
+- In the console, look at the address bar for `region=`, for example `region=us-east-1`.
+- **What it does:** Terraform must deploy to the region your project uses. This repo defaults to `us-east-1`. If yours is different, change `region` in `bootstrap/variables.tf` and `envs/dev/variables.tf`.
 
 ---
 
 ## Part 2: Your computer (one time)
 
-### Step 5. Install the tools
+### Step 4. Install the tools
 Open **PowerShell as Administrator**:
 
 ```powershell
@@ -55,9 +57,9 @@ aws --version
 git --version
 ```
 
-- **Check:** all three print a version. If one says "not recognized," restart the computer.
+- **Check:** all three print a version, and `aws --version` shows **aws-cli/2.32 or later** (needed for `aws login`). If it's older: `winget upgrade Amazon.AWSCLI`.
 
-### Step 6. Configure Git
+### Step 5. Configure Git
 
 ```powershell
 git config --global user.name "Your Name"
@@ -66,32 +68,33 @@ git config --global user.email "you@example.com"
 
 In VS Code, press `Ctrl+Shift+X` and install the **HashiCorp Terraform** extension.
 
-### Step 7. Connect the AWS CLI to your admin user
+### Step 6. Connect the AWS CLI to your account
 
 ```powershell
-aws configure sso
+aws configure set region us-east-1
+aws login
 ```
 
-| Prompt | Answer |
-|---|---|
-| SSO session name | `hlz` |
-| SSO start URL | your access portal URL from Step 4 |
-| SSO region | `us-east-1` |
-| SSO registration scopes | press Enter (default) |
-| (browser opens) | sign in and click **Allow** |
-| Account / role | your account, **AdministratorAccess** |
-| Default client Region | `us-east-1` |
-| CLI default output format | `json` |
-| Profile name | `hlz-admin` |
-
-- **What it does:** lets the terminal borrow temporary credentials from your admin user.
-- **Check:**
+A browser opens. Sign in the same way you sign in to the console and approve. Then test:
 
 ```powershell
-aws sts get-caller-identity --profile hlz-admin
+aws sts get-caller-identity
 ```
 
-You should see your 12-digit account ID and a role ARN containing `AdministratorAccess`.
+You should see your 12-digit account ID and an ARN.
+
+### Step 7. Give Terraform a profile it can use
+
+`aws login` credentials work in the AWS CLI. To be sure Terraform can use them too, create a second profile, `hlz`, that asks the CLI for fresh credentials every time:
+
+```powershell
+aws configure set credential_process "aws configure export-credentials --profile default --format process" --profile hlz
+aws configure set region us-east-1 --profile hlz
+aws sts get-caller-identity --profile hlz
+```
+
+- **Check:** the last command shows the same account ID as Step 6.
+- **Why two profiles:** putting `credential_process` on the `default` profile breaks `aws login`, and `--profile default` inside it stops the `hlz` profile from calling itself in a loop.
 
 ---
 
@@ -100,11 +103,11 @@ You should see your 12-digit account ID and a role ARN containing `Administrator
 ### Step 8. Sign in and pick the profile
 
 ```powershell
-aws sso login --profile hlz-admin
-$env:AWS_PROFILE = "hlz-admin"
+aws login
+$env:AWS_PROFILE = "hlz"
 ```
 
-- **What it does:** refreshes your temporary credentials (they last about 8 hours) and tells Terraform which profile to use in this window.
+- **What it does:** refreshes your sign-in and tells Terraform to use the `hlz` profile in this window.
 - **Tip:** `$env:AWS_PROFILE` only lasts for this PowerShell window. Set it again in any new window.
 
 ### Step 9. Get the code (first time only)
@@ -168,7 +171,7 @@ terraform apply dev.tfplan
 | `plan -out` | Shows exactly what will be created and saves that plan |
 | `apply dev.tfplan` | Builds exactly what the saved plan showed, nothing else |
 
-- **Check:** the plan lists about 40 resources to add, and apply ends with `Apply complete!` and four outputs.
+- **Check:** the plan lists about 35 resources to add, and apply ends with `Apply complete!` and four outputs.
 
 ---
 
@@ -180,19 +183,12 @@ Screenshots go in `docs/images/` for the README. Blur your account ID.
 |---|---|---|
 | VPC and subnets | VPC, then Your VPCs | `hlz-vpc` with 2 public and 2 private subnets |
 | Flow logs | VPC, `hlz-vpc`, Flow logs tab | Active, destination is the log archive bucket |
-| CloudTrail | CloudTrail, then Trails | `hlz-trail`, multi-region, log validation on, KMS encrypted |
+| CloudTrail | CloudTrail, then Trails | `hlz-trail`, log validation on, KMS encrypted |
 | Logs arriving | S3, `hlz-log-archive-...` | `cloudtrail/` and `vpc-flow-logs/` folders (allow 5 to 15 minutes) |
 | Encryption | KMS, Customer managed keys | `alias/hlz-log-archive`, rotation enabled |
-| GuardDuty | GuardDuty, Summary | Enabled, no findings yet |
-| Access Analyzer | IAM, Access analyzer | `hlz-access-analyzer` active |
 | Guardrails | S3, Block Public Access settings for this account | All four settings on |
 
-**Optional security test:** ask GuardDuty for sample findings, then view them in the console:
-
-```powershell
-$detector = terraform output -raw guardduty_detector_id
-aws guardduty create-sample-findings --detector-id $detector
-```
+**GuardDuty and Access Analyzer** are off on projects accounts. In a standard account, set `enable_guardduty = true` and `enable_access_analyzer = true` in `envs/dev/terraform.tfvars`, apply, and generate sample findings with `aws guardduty create-sample-findings --detector-id (terraform output -raw guardduty_detector_id)`.
 
 ---
 
@@ -235,8 +231,10 @@ Then open the repo's **Actions** tab. All three checks (Format, Validate, Checko
 | Error | Cause | Fix |
 |---|---|---|
 | `terraform` is not recognized | PATH not refreshed after install | Open a new PowerShell window or restart |
-| `ExpiredToken` or `The SSO session has expired` | Temporary credentials timed out | `aws sso login --profile hlz-admin` |
-| `No valid credential sources found` | Profile not set in this window | `$env:AWS_PROFILE = "hlz-admin"` |
+| `ExpiredToken` or `Your session has expired` | Sign-in timed out | `aws login` |
+| `No valid credential sources found` | Profile not set in this window | `$env:AWS_PROFILE = "hlz"` |
+| `aws: error: argument command: Invalid choice ... login` | AWS CLI older than 2.32 | `winget upgrade Amazon.AWSCLI`, then open a new window |
+| `AccessDenied` mentioning a service control policy | Your account type blocks that service or region | Check the region (Step 3); keep blocked features' flags off |
 | `BucketAlreadyExists` | Bucket names are global | Change `name_prefix` in `variables.tf` |
 | `Error acquiring the state lock` | A previous run was interrupted | Wait a minute and retry; if stuck, `terraform force-unlock <LOCK_ID>` |
 | `InsufficientS3BucketPolicyException` on CloudTrail | Trail created before the bucket policy | Run `terraform apply` again |

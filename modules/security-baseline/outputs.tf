@@ -4,6 +4,6 @@ output "guardduty_detector_id" {
 }
 
 output "access_analyzer_arn" {
-  description = "ARN of the IAM Access Analyzer."
-  value       = aws_accessanalyzer_analyzer.this.arn
+  description = "ARN of the IAM Access Analyzer, or null when disabled."
+  value       = try(aws_accessanalyzer_analyzer.this[0].arn, null)
 }
