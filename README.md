@@ -86,7 +86,7 @@ terraform init && terraform apply
 # 2. Deploy the dev environment
 cd ../envs/dev
 cp backend.hcl.example backend.hcl   # paste in the bucket name from step 1
-terraform init -backend-config=backend.hcl
+terraform init "-backend-config=backend.hcl"
 terraform plan
 terraform apply
 
