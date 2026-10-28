@@ -4,7 +4,7 @@
 
 A security-first AWS foundation built entirely with reusable Terraform modules. It sets up the guardrails a healthcare or other regulated team would expect before any workload goes in: encrypted audit logs, private networking, threat detection, and account-wide security defaults. Every change is format-checked, validated, and security-scanned in CI.
 
-> **Status:** Phases 0 and 1 complete: deployed, verified and torn down in a live AWS account (us-east-2). See the [build log](docs/BUILD_LOG.md) and the [roadmap](docs/ROADMAP.md).
+> **Status:** Phases 0 and 1 complete: deployed, verified and torn down in a live AWS account (us-east-2). See the [build log](docs/BUILD_LOG.md) and the [roadmap](docs/ROADMAP.md). Phase 3 (detection and auto-remediation) lives in the companion [aws-cloud-detection-lab](https://github.com/ShabangTech/aws-cloud-detection-lab). New to the acronyms? See the [glossary](docs/GLOSSARY.md).
 
 ![Apply complete: 26 resources](docs/images/07-dev-apply.png)
 
@@ -120,7 +120,7 @@ modules/
   security-baseline/       GuardDuty, Access Analyzer, account guardrails
 envs/dev/                  Wires the modules together
 .github/workflows/         CI: fmt, validate, Checkov
-docs/                      Setup guide and roadmap
+docs/                      Setup guide, build log, roadmap, glossary of acronyms
 ```
 
 ## Author

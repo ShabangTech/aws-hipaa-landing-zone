@@ -27,10 +27,13 @@ About 22 to 27 hours total, roughly 2 to 3 weeks at 1 to 2 hours a day.
 - [ ] Manual-approval `apply` job on `main`
 
 ## Phase 3: Auto-remediation (5 to 6 hours)
-- [ ] EventBridge rule for security group changes
-- [ ] Python Lambda that removes any rule opening SSH (port 22) to `0.0.0.0/0`
-- [ ] SNS email alert when a fix happens
-- [ ] Test it live and record the before and after
+Built and tested in the companion [aws-cloud-detection-lab](https://github.com/ShabangTech/aws-cloud-detection-lab),
+which runs on this landing zone (`cloudtrail_to_cloudwatch = true`).
+- [x] EventBridge rule for security group changes
+- [x] Python Lambda that removes any rule opening SSH (port 22) to `0.0.0.0/0`
+- [x] SNS email alert when a fix happens
+- [x] Test it live and record the before and after (closed in 7 to 9 seconds;
+      [results](https://github.com/ShabangTech/aws-cloud-detection-lab/blob/main/docs/RESULTS.md))
 
 ## Phase 4: Polish (2 to 3 hours)
 - [ ] Architecture diagram image for the README
