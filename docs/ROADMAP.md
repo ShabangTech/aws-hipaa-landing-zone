@@ -38,5 +38,5 @@ which runs on this landing zone (`cloudtrail_to_cloudwatch = true`).
 ## Phase 4: Polish (2 to 3 hours)
 - [ ] Architecture diagram image for the README
 - [ ] Screenshots: CloudTrail, GuardDuty, a passing pipeline, an auto-fix
-- [ ] Short write-up of lessons learned
-- [ ] Update resume bullets to past tense and add the repo link
+- [x] Short write-up of lessons learned (in the [build log](BUILD_LOG.md#lessons))
+- [x] Update resume bullets to past tense and add the repo link
