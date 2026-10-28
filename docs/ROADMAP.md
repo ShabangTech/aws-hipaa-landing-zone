@@ -4,7 +4,7 @@ About 22 to 27 hours total, roughly 2 to 3 weeks at 1 to 2 hours a day.
 
 ## Phase 0: Setup (2 to 3 hours)
 - [x] AWS account on the Free plan (projects sign-up, paid for with AWS credits)
-- [ ] MFA on the Builder ID sign-in (settings.aws.com)
+- [x] MFA on the Builder ID sign-in (settings.aws.com), tested at sign-in
 - [x] Install Terraform, AWS CLI v2.32+, Git, and VS Code
 - [x] Sign in with `aws login` and create the `hlz` profile for Terraform
 - [x] Clone this repo
