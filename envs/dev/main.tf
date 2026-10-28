@@ -26,6 +26,8 @@ module "audit_trail" {
   kms_key_arn     = module.log_archive.kms_key_arn
   multi_region    = var.multi_region_trail
 
+  cloudwatch_logs_enabled = var.cloudtrail_to_cloudwatch
+
   depends_on = [module.log_archive]
 }
 

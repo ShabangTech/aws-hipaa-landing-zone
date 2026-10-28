@@ -17,3 +17,8 @@ output "guardduty_detector_id" {
   description = "GuardDuty detector ID (null when disabled)."
   value       = module.security_baseline.guardduty_detector_id
 }
+
+output "cloudtrail_log_group_name" {
+  description = "CloudWatch log group with the trail (null unless cloudtrail_to_cloudwatch = true). Feed this to the detection lab."
+  value       = module.audit_trail.cloudwatch_log_group_name
+}

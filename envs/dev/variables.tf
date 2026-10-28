@@ -37,3 +37,9 @@ variable "multi_region_trail" {
   type        = bool
   default     = false
 }
+
+variable "cloudtrail_to_cloudwatch" {
+  description = "Stream CloudTrail into CloudWatch Logs for real-time detections (needed by aws-cloud-detection-lab). Adds 3 resources."
+  type        = bool
+  default     = false
+}

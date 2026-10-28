@@ -89,6 +89,33 @@ data "aws_iam_policy_document" "kms" {
       values   = [local.account_id]
     }
   }
+
+  # Lets CloudWatch Logs encrypt the optional CloudTrail log group
+  # (audit-trail module, cloudwatch_logs_enabled = true).
+  statement {
+    sid = "AllowCloudWatchLogs"
+
+    actions = [
+      "kms:Encrypt*",
+      "kms:Decrypt*",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:Describe*",
+    ]
+
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${data.aws_region.current.region}.amazonaws.com"]
+    }
+
+    condition {
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:${local.partition}:logs:${data.aws_region.current.region}:${local.account_id}:log-group:*"]
+    }
+  }
 }
 
 resource "aws_kms_key" "logs" {

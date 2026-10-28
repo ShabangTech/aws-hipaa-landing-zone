@@ -18,3 +18,15 @@ variable "kms_key_arn" {
   description = "ARN of the KMS key used to encrypt CloudTrail logs."
   type        = string
 }
+
+variable "cloudwatch_logs_enabled" {
+  description = "Also stream the trail to an encrypted CloudWatch log group, so detections and alarms can watch it in near real time. Used by the aws-cloud-detection-lab repo."
+  type        = bool
+  default     = false
+}
+
+variable "cloudwatch_log_retention_days" {
+  description = "Days to keep CloudTrail events in CloudWatch Logs (the S3 archive keeps its own copy)."
+  type        = number
+  default     = 30
+}
