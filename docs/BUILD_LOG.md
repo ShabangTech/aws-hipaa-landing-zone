@@ -92,7 +92,27 @@ The whole environment is torn down at the end of each session and rebuilt from c
   reviewed. Runs are serialised (`concurrency`) so two can't fight over the state lock.
 - Checks: `fmt`, `validate` (bootstrap, cicd, envs/dev), Checkov (152 passed, 0 failed),
   actionlint on both workflows.
-- Live test: pending (see [CICD.md](CICD.md#3-test-it)).
+- **Blocker 3: the OIDC provider (2026-10-30).** `terraform plan` was clean (8 to add). `apply`
+  stopped at the first resource:
+
+  ```
+  Error: creating IAM OIDC Provider: ... StatusCode: 403 ... AccessDenied:
+  User: arn:aws:sts::************:assumed-role/AccountFullAccessRole/... is not authorized to
+  perform: iam:CreateOpenIDConnectProvider on resource:
+  arn:aws:iam::************:oidc-provider/token.actions.githubusercontent.com
+  with an explicit deny in a service control policy: arn:aws:organizations::************:policy/...
+  ```
+
+  Diagnosis: an **explicit deny in an SCP** set by the organization that owns the account (AWS
+  itself, for "projects" accounts). In IAM evaluation an explicit deny wins over every allow,
+  including my full-access role, and an SCP can't be changed from inside the member account. Unlike
+  blocker 2 (S3 had a second, allowed path), there is no alternative here: the provider is the
+  trust anchor for every role. `terraform state list` showed only data sources, so nothing was
+  created and nothing costs anything.
+- **Outcome:** the pipeline stays in the repo, validated by CI, switched off by the
+  `CICD_ENABLED` repository variable so pull requests don't fail. It runs unchanged on a standard
+  account. Stored access keys were rejected as a fallback: they defeat the point of the phase (and
+  the same account likely blocks them too).
 
 ## Lessons
 

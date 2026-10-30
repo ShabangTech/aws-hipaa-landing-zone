@@ -24,7 +24,7 @@ Every acronym used in this landing zone and in the
 | KMS | Key Management Service, which holds the encryption keys |
 | VPC | Virtual Private Cloud, the private network |
 | EC2 | Elastic Compute Cloud: servers, and where security groups live |
-| SCP | Service Control Policy, an organization-wide guardrail that can deny API calls |
+| SCP | Service Control Policy, an organization-wide guardrail that can deny API calls; an explicit deny in one beats every allow (it blocked S3 bucket names and the GitHub OIDC provider in this project) |
 | ARN | Amazon Resource Name, the unique ID of any AWS resource |
 | CLI | Command Line Interface (the `aws` command) |
 | OIDC | OpenID Connect, which lets GitHub Actions sign in to AWS without stored keys (see [CICD.md](CICD.md)) |

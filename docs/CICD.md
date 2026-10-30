@@ -1,5 +1,13 @@
 # Phase 2: deploy from GitHub with no stored keys (OIDC)
 
+> **Status (2026-10-30): built and validated, not live on this account.** The pipeline passes
+> `fmt`, `validate`, Checkov and actionlint in CI. Deploying `cicd/` to the AWS "projects"
+> account failed at the first resource: AWS's own service control policy (SCP) explicitly denies
+> `iam:CreateOpenIDConnectProvider`, so GitHub can't be trusted as an identity provider there.
+> Nothing was created. The workflow is switched off (`CICD_ENABLED` unset) so it doesn't fail on
+> every pull request. On a standard AWS account it runs unchanged: follow the setup below and set
+> `CICD_ENABLED = true`. Details: [build log](BUILD_LOG.md#8-cicd-with-oidc-phase-2).
+
 GitHub Actions deploys the landing zone to AWS without any access key saved anywhere.
 
 | When | What runs | AWS role | Gate |
@@ -50,8 +58,8 @@ cd cicd
 Copy-Item terraform.tfvars.example terraform.tfvars
 notepad terraform.tfvars                      # paste your state bucket name (same as envs\dev\backend.hcl)
 terraform init "-backend-config=..\envs\dev\backend.hcl"
-terraform plan                                # expect: 8 to add
-terraform apply
+terraform plan "-out=cicd.tfplan"             # expect: 8 to add (quote -out: PowerShell splits it at the dot)
+terraform apply cicd.tfplan
 terraform output
 ```
 
@@ -68,8 +76,9 @@ Keep the three outputs open for step 2. If `apply` says the OIDC provider alread
    - `AWS_PLAN_ROLE_ARN` = the `plan_role_arn` output
    - `AWS_APPLY_ROLE_ARN` = the `apply_role_arn` output
    - `TF_STATE_BUCKET` = your state bucket name
-3. **Variables tab > New repository variable** (only if the detection lab is deployed):
-   - `TF_VAR_CLOUDTRAIL_TO_CLOUDWATCH` = `true`
+3. **Variables tab > New repository variable:**
+   - `CICD_ENABLED` = `true` (the on switch; the workflow does nothing without it)
+   - `TF_VAR_CLOUDTRAIL_TO_CLOUDWATCH` = `true` (only if the detection lab is deployed)
 
 They're secrets because the role ARNs contain your account number.
 
@@ -92,6 +101,8 @@ apply, and the role's trust policy in the IAM console (account number blurred).
 |---|---|
 | `Not authorized to perform sts:AssumeRoleWithWebIdentity` | The job's subject doesn't match the trust policy: plan from a fork, or apply without the `production` environment. Check the repo name in `cicd/variables.tf`. |
 | `Could not load credentials` / empty role | A secret is missing or misspelled (step 2). |
-| `AccessDenied` creating the OIDC provider | The account blocks it; see the account notes in the [build log](BUILD_LOG.md). |
+| `AccessDenied ... iam:CreateOpenIDConnectProvider ... explicit deny in a service control policy` | The account's organization forbids it (AWS "projects" accounts do). No permission you hold can override an SCP; use a standard account. See the [build log](BUILD_LOG.md#8-cicd-with-oidc-phase-2). |
+| `Too many command line arguments` on `terraform plan -out=...` | PowerShell splits the argument at the dot: quote it, `"-out=cicd.tfplan"`. |
+| No runs at all | `CICD_ENABLED` isn't set to `true` (step 2). |
 | `Error acquiring the state lock` | Another run (or your PC) holds the lock; runs queue one at a time. Wait, or `terraform force-unlock` from your PC. |
 | Apply job skipped | The plan found no changes; nothing to apply. |

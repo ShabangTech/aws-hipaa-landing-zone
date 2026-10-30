@@ -5,7 +5,7 @@
 
 A security-first AWS foundation built entirely with reusable Terraform modules. It sets up the guardrails a healthcare or other regulated team would expect before any workload goes in: encrypted audit logs, private networking, threat detection, and account-wide security defaults. Every change is format-checked, validated, and security-scanned in CI.
 
-> **Status:** Phases 0 to 3 built; Phase 2 (OIDC deploys) is ready to switch on ([CICD.md](docs/CICD.md)). Phases 0 and 1 complete: deployed, verified and torn down in a live AWS account (us-east-2). See the [build log](docs/BUILD_LOG.md) and the [roadmap](docs/ROADMAP.md). Phase 3 (detection and auto-remediation) lives in the companion [aws-cloud-detection-lab](https://github.com/ShabangTech/aws-cloud-detection-lab). New to the acronyms? See the [glossary](docs/GLOSSARY.md).
+> **Status:** Phases 0 to 3 built. Phase 2 (OIDC deploys) is built and validated in CI; the free "projects" account's service control policy blocks the GitHub OIDC provider, so it is switched off there and runs on a standard account ([CICD.md](docs/CICD.md)). Phases 0 and 1 complete: deployed, verified and torn down in a live AWS account (us-east-2). See the [build log](docs/BUILD_LOG.md) and the [roadmap](docs/ROADMAP.md). Phase 3 (detection and auto-remediation) lives in the companion [aws-cloud-detection-lab](https://github.com/ShabangTech/aws-cloud-detection-lab). New to the acronyms? See the [glossary](docs/GLOSSARY.md).
 
 ![Apply complete: 26 resources](docs/images/07-dev-apply.png)
 
@@ -86,7 +86,8 @@ The [build log](docs/BUILD_LOG.md) walks through the real deployment with screen
 Pull requests get a `terraform plan` comment; merges to `main` apply that exact plan only after a
 manual approval. GitHub signs in to AWS with OIDC (short-lived tokens, no access keys), using a
 read-only plan role and a least-privilege apply role that only an approved `production` job can
-assume. Details and setup: [docs/CICD.md](docs/CICD.md).
+assume. Details and setup: [docs/CICD.md](docs/CICD.md). (Off on AWS "projects" accounts, whose
+service control policy denies creating the OIDC provider; see the build log.)
 
 ## Cost guardrails
 

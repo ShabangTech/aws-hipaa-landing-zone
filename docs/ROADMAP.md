@@ -26,7 +26,11 @@ About 22 to 27 hours total, roughly 2 to 3 weeks at 1 to 2 hours a day.
       role and a least-privilege apply role, trusted only for this repo ([how it works](CICD.md))
 - [x] `terraform plan` on every pull request, posted as a comment (account number blanked out)
 - [x] Manual-approval `apply` job on `main` (GitHub `production` environment), plus an approved `destroy`
-- [ ] Deploy `cicd/` from your PC, add the environment and secrets, and run the test in [CICD.md](CICD.md#3-test-it)
+- [x] Deploy attempted: blocked by the projects account's SCP (explicit deny on
+      `iam:CreateOpenIDConnectProvider`); documented in the [build log](BUILD_LOG.md#8-cicd-with-oidc-phase-2),
+      pipeline switched off with `CICD_ENABLED`
+- [ ] *(Optional)* Live run on a standard AWS account: deploy `cicd/`, add the environment and
+      secrets, set `CICD_ENABLED = true`, run the test in [CICD.md](CICD.md#3-test-it)
 
 ## Phase 3: Auto-remediation (5 to 6 hours)
 Built and tested in the companion [aws-cloud-detection-lab](https://github.com/ShabangTech/aws-cloud-detection-lab),

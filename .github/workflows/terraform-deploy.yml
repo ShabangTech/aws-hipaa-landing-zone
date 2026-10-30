@@ -5,6 +5,11 @@ name: terraform-deploy
 #   push to main   -> plan, then apply WAITS for a person to approve the "production" environment
 #   manual run     -> plan / apply / destroy (apply and destroy also wait for approval)
 # The roles and the trust live in cicd/ (deployed once from your PC). See docs/CICD.md.
+#
+# OFF until the repository variable CICD_ENABLED is "true" (Settings > Secrets and variables >
+# Actions > Variables). AWS "projects" accounts can't create the GitHub OIDC provider (an explicit
+# deny in AWS's service control policy), so on those accounts the pipeline stays off instead of
+# failing on every pull request. On a standard account: deploy cicd/, add the secrets, set it.
 
 on:
   pull_request:
@@ -38,7 +43,7 @@ env:
 jobs:
   plan:
     name: Plan
-    if: github.event_name != 'workflow_dispatch' || inputs.action != 'destroy'
+    if: vars.CICD_ENABLED == 'true' && (github.event_name != 'workflow_dispatch' || inputs.action != 'destroy')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -156,7 +161,7 @@ jobs:
 
   destroy:
     name: Destroy (needs approval)
-    if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
+    if: vars.CICD_ENABLED == 'true' && github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
     runs-on: ubuntu-latest
     environment: production
     permissions:
