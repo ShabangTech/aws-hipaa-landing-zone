@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dir: [bootstrap, envs/dev]
+        dir: [bootstrap, cicd, envs/dev]
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3

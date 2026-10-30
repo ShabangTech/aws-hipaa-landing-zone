@@ -1,10 +1,11 @@
 # HIPAA-Ready AWS Landing Zone (Terraform)
 
 [![terraform-checks](https://github.com/ShabangTech/aws-hipaa-landing-zone/actions/workflows/terraform-checks.yml/badge.svg)](https://github.com/ShabangTech/aws-hipaa-landing-zone/actions/workflows/terraform-checks.yml)
+[![terraform-deploy](https://github.com/ShabangTech/aws-hipaa-landing-zone/actions/workflows/terraform-deploy.yml/badge.svg)](https://github.com/ShabangTech/aws-hipaa-landing-zone/actions/workflows/terraform-deploy.yml)
 
 A security-first AWS foundation built entirely with reusable Terraform modules. It sets up the guardrails a healthcare or other regulated team would expect before any workload goes in: encrypted audit logs, private networking, threat detection, and account-wide security defaults. Every change is format-checked, validated, and security-scanned in CI.
 
-> **Status:** Phases 0 and 1 complete: deployed, verified and torn down in a live AWS account (us-east-2). See the [build log](docs/BUILD_LOG.md) and the [roadmap](docs/ROADMAP.md). Phase 3 (detection and auto-remediation) lives in the companion [aws-cloud-detection-lab](https://github.com/ShabangTech/aws-cloud-detection-lab). New to the acronyms? See the [glossary](docs/GLOSSARY.md).
+> **Status:** Phases 0 to 3 built; Phase 2 (OIDC deploys) is ready to switch on ([CICD.md](docs/CICD.md)). Phases 0 and 1 complete: deployed, verified and torn down in a live AWS account (us-east-2). See the [build log](docs/BUILD_LOG.md) and the [roadmap](docs/ROADMAP.md). Phase 3 (detection and auto-remediation) lives in the companion [aws-cloud-detection-lab](https://github.com/ShabangTech/aws-cloud-detection-lab). New to the acronyms? See the [glossary](docs/GLOSSARY.md).
 
 ![Apply complete: 26 resources](docs/images/07-dev-apply.png)
 
@@ -80,6 +81,13 @@ The [build log](docs/BUILD_LOG.md) walks through the real deployment with screen
 | `terraform destroy` | 26 resources removed cleanly |
 | Rebuild from scratch | 26 created again, then destroyed again |
 
+## Deploys from GitHub with no stored keys
+
+Pull requests get a `terraform plan` comment; merges to `main` apply that exact plan only after a
+manual approval. GitHub signs in to AWS with OIDC (short-lived tokens, no access keys), using a
+read-only plan role and a least-privilege apply role that only an approved `production` job can
+assume. Details and setup: [docs/CICD.md](docs/CICD.md).
+
 ## Cost guardrails
 
 Designed to run at or near $0 on a new account:
@@ -119,7 +127,8 @@ modules/
   audit-trail/             CloudTrail
   security-baseline/       GuardDuty, Access Analyzer, account guardrails
 envs/dev/                  Wires the modules together
-.github/workflows/         CI: fmt, validate, Checkov
+cicd/                      GitHub OIDC provider + plan / apply roles (run once)
+.github/workflows/         CI: fmt, validate, Checkov; deploy: plan on PRs, approved apply
 docs/                      Setup guide, build log, roadmap, glossary of acronyms
 ```
 

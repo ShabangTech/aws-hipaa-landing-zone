@@ -1,0 +1,2 @@
+# Copy to terraform.tfvars (git-ignored) and fill in the state bucket name from bootstrap.
+state_bucket = "hlz-tfstate-123456789012-us-east-2-an"

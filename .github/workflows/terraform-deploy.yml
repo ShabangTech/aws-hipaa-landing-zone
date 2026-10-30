@@ -1,0 +1,188 @@
+name: terraform-deploy
+
+# Phase 2: deploy the landing zone from GitHub with no stored AWS keys (OIDC).
+#   pull request   -> terraform plan, posted on the PR as a comment (read-only role)
+#   push to main   -> plan, then apply WAITS for a person to approve the "production" environment
+#   manual run     -> plan / apply / destroy (apply and destroy also wait for approval)
+# The roles and the trust live in cicd/ (deployed once from your PC). See docs/CICD.md.
+
+on:
+  pull_request:
+    paths: ["envs/**", "modules/**", ".github/workflows/terraform-deploy.yml"]
+  push:
+    branches: [main]
+    paths: ["envs/**", "modules/**"]
+  # checkov:skip=CKV_GHA_7:The only input is a fixed choice of which job runs (plan / apply / destroy); it never reaches the build
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to run"
+        type: choice
+        options: [plan, apply, destroy]
+        default: plan
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-dev
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  AWS_REGION: us-east-2
+  WORKDIR: envs/dev
+  # Feature flags as repository variables (Settings > Secrets and variables > Actions > Variables).
+  TF_VAR_cloudtrail_to_cloudwatch: ${{ vars.TF_VAR_CLOUDTRAIL_TO_CLOUDWATCH || 'false' }}
+
+jobs:
+  plan:
+    name: Plan
+    if: github.event_name != 'workflow_dispatch' || inputs.action != 'destroy'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write          # lets the job ask GitHub for its OIDC token
+      pull-requests: write     # to post the plan on the PR
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS credentials (OIDC, read-only role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-plan-${{ github.run_id }}
+
+      - name: Hide the account number in every log
+        run: |
+          ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          echo "::add-mask::$ACCOUNT"
+          echo "ACCOUNT_ID=$ACCOUNT" >> "$GITHUB_ENV"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform init
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform init -input=false -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: terraform plan
+        id: plan
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          set +e
+          terraform plan -input=false -no-color -lock-timeout=120s -detailed-exitcode -out=tfplan > plan.txt 2>&1
+          code=$?
+          set -e
+          cat plan.txt
+          echo "exitcode=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = "1" ]; then exit 1; fi
+          # A copy for the PR comment with the account number blanked out.
+          sed "s/$ACCOUNT_ID/************/g" plan.txt > plan-public.txt
+
+      - name: Post the plan on the pull request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let plan = fs.readFileSync('envs/dev/plan-public.txt', 'utf8');
+            const summary = (plan.match(/Plan: .*|No changes\..*/) || ['(see the run log)'])[0];
+            if (plan.length > 60000) plan = plan.slice(-60000);
+            const marker = '<!-- terraform-plan -->';
+            const body = `${marker}\n### terraform plan: envs/dev\n**${summary}**\n\n<details><summary>Full plan</summary>\n\n\`\`\`terraform\n${plan}\n\`\`\`\n</details>\n\n_Run [#${context.runNumber}](${context.payload.repository.html_url}/actions/runs/${context.runId}). Apply happens after merge, once a reviewer approves the production environment._`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: context.issue.number });
+            const mine = comments.find(c => c.body && c.body.startsWith(marker));
+            if (mine) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+            }
+
+      - name: Keep the plan for the apply job
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: envs/dev/tfplan
+          retention-days: 1
+
+    outputs:
+      changes: ${{ steps.plan.outputs.exitcode == '2' }}
+
+  apply:
+    name: Apply (needs approval)
+    needs: plan
+    if: >-
+      needs.plan.outputs.changes == 'true' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_dispatch' && inputs.action == 'apply'))
+    runs-on: ubuntu-latest
+    environment: production    # a required reviewer must approve before this job starts
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS credentials (OIDC, apply role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-apply-${{ github.run_id }}
+
+      - name: Hide the account number in every log
+        run: echo "::add-mask::$(aws sts get-caller-identity --query Account --output text)"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform init
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform init -input=false -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="region=${{ env.AWS_REGION }}"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.WORKDIR }}
+
+      - name: terraform apply (exactly the plan that was reviewed)
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform apply -input=false -no-color -lock-timeout=120s tfplan
+
+  destroy:
+    name: Destroy (needs approval)
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS credentials (OIDC, apply role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-destroy-${{ github.run_id }}
+
+      - name: Hide the account number in every log
+        run: echo "::add-mask::$(aws sts get-caller-identity --query Account --output text)"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform init
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform init -input=false -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: terraform destroy
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform destroy -input=false -no-color -auto-approve -lock-timeout=120s

@@ -27,7 +27,8 @@ Every acronym used in this landing zone and in the
 | SCP | Service Control Policy, an organization-wide guardrail that can deny API calls |
 | ARN | Amazon Resource Name, the unique ID of any AWS resource |
 | CLI | Command Line Interface (the `aws` command) |
-| OIDC | OpenID Connect, which lets GitHub Actions sign in to AWS without stored keys |
+| OIDC | OpenID Connect, which lets GitHub Actions sign in to AWS without stored keys (see [CICD.md](CICD.md)) |
+| JWT | JSON Web Token, the signed token GitHub hands a workflow run; its `sub` (subject) says which repo, branch or environment it came from |
 
 ## Security terms
 
@@ -49,4 +50,7 @@ Every acronym used in this landing zone and in the
 | Acronym | Means |
 |---------|-------|
 | IaC | Infrastructure as Code, which is what Terraform does |
-| CI/CD | Continuous Integration / Continuous Delivery (the GitHub Actions checks) |
+| CI/CD | Continuous Integration / Continuous Delivery (the GitHub Actions checks and the deploy pipeline) |
+| PR | Pull Request: a proposed change on GitHub; the pipeline posts a `terraform plan` on each one |
+| GitHub environment | A named deploy target (here `production`) that can require a person's approval before a job runs |
+| Artifact | A file one workflow job saves for a later one (the reviewed `tfplan` handed to the apply job) |

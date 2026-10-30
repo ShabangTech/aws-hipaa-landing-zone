@@ -79,6 +79,21 @@ The whole environment is torn down at the end of each session and rebuilt from c
 
 **Repeatability check:** after the first teardown, the environment was rebuilt from scratch with a fresh `plan` and `apply` (26 resources), then destroyed again (26 resources). No manual steps, no drift.
 
+## 8. CI/CD with OIDC (Phase 2)
+
+- `cicd/` creates GitHub's OIDC provider and two roles. The trust policies check the token's
+  audience (`sts.amazonaws.com`) and subject: the plan role accepts only this repo's pull requests
+  and `main`; the apply role accepts only `environment:production`, which GitHub hands out only
+  after a reviewer approves.
+- The apply role is limited to the landing zone's services; S3 only on `hlz-*` buckets (Checkov
+  CKV_AWS_108 caught an earlier `s3:*` on everything); IAM only on `hlz-*` roles; explicit denies
+  stop it from touching the OIDC provider, IAM users, access keys or its own roles.
+- `apply` runs the saved plan file from the plan job, so what gets deployed is exactly what was
+  reviewed. Runs are serialised (`concurrency`) so two can't fight over the state lock.
+- Checks: `fmt`, `validate` (bootstrap, cicd, envs/dev), Checkov (152 passed, 0 failed),
+  actionlint on both workflows.
+- Live test: pending (see [CICD.md](CICD.md#3-test-it)).
+
 ## Lessons
 
 - **Read the deny.** "Explicit deny in a service control policy" points at the organization, not IAM, and narrows the search fast.

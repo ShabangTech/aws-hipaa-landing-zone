@@ -22,9 +22,11 @@ About 22 to 27 hours total, roughly 2 to 3 weeks at 1 to 2 hours a day.
 
 ## Phase 2: CI/CD pipeline (4 to 5 hours)
 - [x] GitHub Actions: `terraform fmt`, `validate`, Checkov
-- [ ] GitHub OIDC provider and deploy role in AWS (no stored access keys)
-- [ ] `terraform plan` on every pull request, posted as a comment
-- [ ] Manual-approval `apply` job on `main`
+- [x] GitHub OIDC provider and two roles in AWS, no stored access keys (`cicd/`): a read-only plan
+      role and a least-privilege apply role, trusted only for this repo ([how it works](CICD.md))
+- [x] `terraform plan` on every pull request, posted as a comment (account number blanked out)
+- [x] Manual-approval `apply` job on `main` (GitHub `production` environment), plus an approved `destroy`
+- [ ] Deploy `cicd/` from your PC, add the environment and secrets, and run the test in [CICD.md](CICD.md#3-test-it)
 
 ## Phase 3: Auto-remediation (5 to 6 hours)
 Built and tested in the companion [aws-cloud-detection-lab](https://github.com/ShabangTech/aws-cloud-detection-lab),
